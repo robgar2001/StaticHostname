@@ -2,48 +2,15 @@ import socket
 import threading
 from functools import partial
 
-from encryption import encrypt, decrypt
-
-
-class Message:
-    def __init__(self, line, sock: socket):
-        self.s = sock
-        line = str.split(str.rstrip(line))
-
-        place1_args = {'PING': partial(self.ping_response, line)}
-        place1f = place1_args.get(line[0], False)
-        if place1f:
-            place1f()
-            return
-
-        if line[1] == "PRIVMSG":
-            print('Private message line: ', line)
-            for char in line[0]:
-                if char == "!":
-                    break
-            size = len(line)
-            i = 3
-            message = ""
-            while i < size:
-                message += line[i] + " "
-                i = i + 1
-            message.lstrip(":")
-            message = message.strip(":")
-            decrypted_message = decrypt(message)
-            print(decrypted_message)
-
-        if line[1] == 'MODE':
-            self.start_up_finished = True
-
-    def ping_response(self, line):
-        print('Ping request received', line)
-        self.s.send(bytes("PONG %s\r\n" % line[1], "UTF-8"))
+from encryption import Cipher
 
 
 class IRCClient:
     def __init__(self, host='irc.irchighway.net', port=6669, nick='shc123'):
         self.HOST = host
         self.PORT = port
+
+        self.cipher = Cipher(key='1232')
 
         self.NICK = nick
         self.sender = ""
@@ -77,7 +44,7 @@ class IRCClient:
 
             for line in temp:
                 if len(line) >= 2:
-                    message = Message(line=line, sock=self.s)
+                    message = Message(line=line, irc=self)
                     self.parser(message=Message)
 
     def parser(self, message):
@@ -85,7 +52,42 @@ class IRCClient:
 
     def send_message(self, message, to):
         print('Sending command: ', message, 'to', to)
-        self.s.send(bytes("PRIVMSG %s %s\r\n" % (to, encrypt(message)), "UTF-8"))
+        self.s.send(bytes("PRIVMSG %s %s\r\n" % (to, self.cipher.encrypt(message)), "UTF-8"))
+
+
+class Message:
+    def __init__(self, line, irc: IRCClient):
+        self.irc = irc
+        line = str.split(str.rstrip(line))
+
+        place1_args = {'PING': partial(self.ping_response, line)}
+        place1f = place1_args.get(line[0], False)
+        if place1f:
+            place1f()
+            return
+
+        if line[1] == "PRIVMSG":
+            print('Private message line: ', line)
+            for char in line[0]:
+                if char == "!":
+                    break
+            size = len(line)
+            i = 3
+            message = ""
+            while i < size:
+                message += line[i] + " "
+                i = i + 1
+            message.lstrip(":")
+            message = message.strip(":")
+            decrypted_message = self.irc.cipher.decrypt(message)
+            print(decrypted_message)
+
+        if line[1] == 'MODE':
+            self.start_up_finished = True
+
+    def ping_response(self, line):
+        print('Ping request received', line)
+        self.irc.s.send(bytes("PONG %s\r\n" % line[1], "UTF-8"))
 
 
 irc = IRCClient()

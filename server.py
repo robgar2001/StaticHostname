@@ -1,6 +1,6 @@
 import socket
 import threading
-from encryption import encrypt, decrypt
+from encryption import Cipher
 from requests import get
 import time
 
@@ -14,6 +14,7 @@ class Server:
         self.sender = "shc123"
 
         self.poller = IPPoller()
+        self.cipher = Cipher(key='1232')
 
         self.readbuffer = ""
         self.receive_buffer_size = 1024
@@ -62,7 +63,7 @@ class Server:
                     message.lstrip(":")
                     message = message.strip(":")
 
-                    request = decrypt(message)[:-1]
+                    request = self.cipher.decrypt(message)
                     print(request)
                     if request == 'ip':
                         self.send_message(message=self.poller.latest_ip_update, to=self.sender)
@@ -73,7 +74,7 @@ class Server:
                 self.poller.latest_ip_update = ip
 
     def send_message(self, message, to):
-        self.s.send(bytes("PRIVMSG %s %s \r\n" % (to, encrypt(str(message))), "UTF-8"))
+        self.s.send(bytes("PRIVMSG %s %s \r\n" % (to, self.cipher.encrypt(str(message))), "UTF-8"))
 
 
 class IPPoller:

@@ -1,24 +1,40 @@
-import datetime
 from Crypto.Cipher import AES
+import os
+import base64
 
 
+class Cipher:
+    key_filename = 'key.pem'
+    encoding = 'utf-8'
 
+    def __init__(self, key=None):
+        if os.path.isfile(self.key_filename):
+            self.nonce, self.key = self.load_key()
+            self.cipher = AES.new(self.key, AES.MODE_EAX, self.nonce)
+        else:
+            # current cipher requires key length of 16 bytes, 1 char = 1 byte if it's ascii char
+            keylen = len(key)
+            if keylen > 16:
+                key = key[:16]
+                keylen = len(key)
 
-def encrypt(message, key=None):
-    if not key:
-        day = datetime.datetime.today().day
-        daylen = len(str(day))
-        key = str(str(day) + (16 - daylen) * '0').encode('utf-8')
-    cipher = AES.new(key, AES.MODE_EAX)
-    encrypted_massage, tag = cipher.encrypt_and_digest(message.encode('utf-8'))
-    return encrypted_massage
+            self.key = (key + '0' * (16 - keylen)).encode(self.encoding)
+            self.cipher = AES.new(self.key, AES.MODE_EAX)
+            self.save_key()
 
+    def save_key(self):
+        with open(self.key_filename, 'wb') as keyfile:
+            [keyfile.write(x) for x in (self.cipher.nonce, self.key)]
 
-def decrypt(message, key=None):
-    if not key:
-        day = datetime.datetime.today().day
-        daylen = len(str(day))
-        key = str(str(day) + (16 - daylen) * '0').encode('utf-8')
-    cipher = AES.new(key, AES.MODE_EAX)
-    decrypted_message = cipher.decrypt(message.encode('utf-8'))
-    return decrypted_message.decode('utf-8')[:-1]
+    def load_key(self):
+        """
+        :return: nonce, tag
+        """
+        with open(self.key_filename, 'rb') as keyfile:
+            return [keyfile.read(x) for x in (16, 16)]
+
+    def encrypt(self, message):
+        return base64.b64encode(self.cipher.encrypt(message.encode(self.encoding))).decode(self.encoding)
+
+    def decrypt(self, message):
+        return self.cipher.decrypt(base64.b64decode(message)).decode(self.encoding)

@@ -1,7 +1,6 @@
 import socket
 import threading
-
-from encryption import encrypt, decrypt
+from encryption import Cipher
 
 
 class Client:
@@ -14,6 +13,8 @@ class Client:
         self.init_communication_finished = False
         self.start_up_finished = False
         self.latest_ip = None
+
+        self.cipher = Cipher(key='1232')
 
         self.readbuffer = ""
 
@@ -57,7 +58,7 @@ class Client:
                         i = i + 1
                     message.lstrip(":")
                     message = message.strip(":")
-                    decrypted_message = decrypt(message)[:-1]
+                    decrypted_message = self.cipher.decrypt(message)[:-1]
                     self.latest_ip = decrypted_message
                     print(decrypted_message)
 
@@ -66,7 +67,9 @@ class Client:
 
     def send_message(self, message, to):
         print('Sending command: ', message, 'to', to)
-        self.s.send(bytes("PRIVMSG %s %s\r\n" % (to, encrypt(message)), "UTF-8"))
+        secret = self.cipher.encrypt(message)
+        print('Cipher text: %s' % secret)
+        self.s.send(bytes("PRIVMSG %s %s\r\n" % (to, secret), "UTF-8"))
 
 
 c = Client()
