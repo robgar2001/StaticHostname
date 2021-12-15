@@ -1,17 +1,20 @@
 from Crypto.Cipher import AES
 import os
 import base64
+import logger
 
 
 class Cipher:
-    key_filename = 'key.pem'
+    key_filename = '../../key.pem'
     encoding = 'utf-8'
 
     def __init__(self, key=None):
         if os.path.isfile(self.key_filename):
+            logger.log('Found encryption key file!')
             self.nonce, self.key = self.load_key()
             self.cipher = AES.new(self.key, AES.MODE_EAX, self.nonce)
         else:
+            logger.log('No encryption key file found, creating one!')
             # current cipher requires key length of 16 bytes, 1 char = 1 byte if it's ascii char
             keylen = len(key)
             if keylen > 16:
