@@ -22,6 +22,8 @@ class IPPoller:
 
 
 class Publisher(IRCClient):
+    subscriber = 'subscriberb1232'
+
     def __init__(self, *args, **kwargs):
         self.poller = IPPoller()
         super(Publisher, self).__init__(*args, **kwargs)
@@ -29,8 +31,10 @@ class Publisher(IRCClient):
     def parser(self, message):
         ip = self.poller.ip
         if ip != self.poller.latest_ip_update:
-            self.send_message(message=ip, to=self.sender)
+            self.send_message(message=ip, to=self.subscriber)
             self.poller.latest_ip_update = ip
+        elif str(message) == 'ip?':
+            self.send_message(message=ip, to=self.subscriber)
 
 
-publisher = Publisher(name='shs123')
+publisher = Publisher(name='publisherb1232')

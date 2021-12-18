@@ -57,6 +57,3 @@ class IRCClient:
     def send_message(self, message, to):
         logger.log('Sending command: %s to %s ' % (message, to))
         self.socket.send(bytes("PRIVMSG %s %s\r\n" % (to, self.cipher.encrypt(message)), "UTF-8"))
-
-
-irc = IRCClient()
