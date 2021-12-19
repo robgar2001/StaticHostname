@@ -1,10 +1,28 @@
 from transport.irc.irc import IRCClient
+from transport.dns.dnsserver import DNSServer
+import transport.dns.dnsserver
 import logger
 
-c = IRCClient(name='subscriberb1232')
-logger.log('Subscriber is starting, now starting request thread')
-while True:
-    if c.start_up_finished:
-        receiver = 'publisherb1232'
-        command = input('Command: \n')
-        c.send_message(to=receiver, message=command)
+
+class Subscriber(IRCClient):
+    publisher = 'publisherb1232'
+
+    def __init__(self, *args, **kwargs):
+        logger.log('Subscriber is starting...')
+        self.ip_updated = False
+        self.ip = None
+        super(Subscriber, self).__init__(*args, **kwargs)
+
+    def send_message(self, message):
+        super(Subscriber, self).send_message(message, self.publisher)
+
+    def parser(self, message):
+        self.ip = str(message)
+        self.ip_updated = True
+
+
+sub = Subscriber(name='subscriberb1232')
+transport.dns.dnsserver.subscriber = sub
+dnss = DNSServer(ip_subscriber=sub)
+
+
